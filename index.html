@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Com et trobes avui? · Orientació sobre la distonia</title>
+  <style>
+    :root {
+      --bg: #f4f6f9; --card: #ffffff; --text: #1f2933; --muted: #5f6b7a;
+      --accent: #3b6ea5; --accent-soft: #e6eef7; --border: #d9dee5;
+      --neutre: #3f8f6b; --fisic: #3b6ea5; --emocional: #8a5fb0;
+      --social: #c07a2c; --info: #2f8f9d; --urgent: #c0392b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14181d; --card: #1d232a; --text: #e8ecf0; --muted: #9aa6b2;
+        --accent: #7fb0e6; --accent-soft: #263341; --border: #333c46;
+        --neutre: #6fcf9f; --fisic: #7fb0e6; --emocional: #c4a0e8;
+        --social: #e8a95c; --info: #6fcbd8; --urgent: #ff7b6b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column;
+    }
+    header, main, footer { width: 100%; max-width: 680px; margin: 0 auto; padding: 0 16px; }
+    header { padding-top: 24px; padding-bottom: 8px; }
+    header h1 { font-size: 1.1rem; margin: 0; color: var(--muted); font-weight: 600; }
+    main { flex: 1; padding-top: 12px; padding-bottom: 24px; }
+    footer { padding-bottom: 24px; color: var(--muted); font-size: .8rem; text-align: center; }
+    footer button { font-size: .8rem; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; }
+    h2 { font-size: 1.4rem; line-height: 1.3; margin: 0 0 16px; }
+    p { margin: 0 0 14px; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    .progress { font-size: .85rem; color: var(--muted); margin-bottom: 8px; }
+    [hidden] { display: none !important; }
+
+    .opcions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    button { font: inherit; cursor: pointer; }
+    .opcio {
+      text-align: left; padding: 14px 16px; border-radius: 12px; color: var(--text);
+      background: var(--card); border: 1.5px solid var(--border);
+    }
+    .opcio:hover, .opcio:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+    .primari {
+      background: var(--accent); color: #fff; border: none; border-radius: 12px;
+      padding: 14px 20px; font-weight: 600; width: 100%;
+    }
+    @media (prefers-color-scheme: dark) { .primari { color: #0e1318; } }
+    .secundari {
+      background: none; border: none; color: var(--accent); padding: 8px 0; text-decoration: underline;
+    }
+    .fila { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; }
+
+    .avis { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; font-size: .9rem; margin: 16px 0; }
+    label.check { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; margin: 14px 0; }
+    label.check input { margin-top: 4px; }
+
+    .final { border-left: 6px solid var(--accent); }
+    .final[data-cat="neutre"] { border-left-color: var(--neutre); }
+    .final[data-cat="fisic"] { border-left-color: var(--fisic); }
+    .final[data-cat="emocional"] { border-left-color: var(--emocional); }
+    .final[data-cat="social"] { border-left-color: var(--social); }
+    .final[data-cat="info"] { border-left-color: var(--info); }
+    .final[data-cat="urgent"] { border-left-color: var(--urgent); background: color-mix(in srgb, var(--urgent) 7%, var(--card)); }
+    .etiqueta { display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--muted); margin-bottom: 10px; }
+    .enllacos { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+    .enllac {
+      display: block; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border);
+      color: var(--accent); text-decoration: none; font-weight: 500;
+    }
+    .enllac:hover { background: var(--accent-soft); }
+    .tel { background: var(--urgent); color: #fff; border-color: var(--urgent); text-align: center; font-weight: 700; }
+    .tel:hover { background: var(--urgent); opacity: .9; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; margin: 12px 0; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .resum { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .resum summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+    .resum ol { padding-left: 20px; font-size: .88rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Orientació diària · distonia</h1>
+  </header>
+
+  <main>
+    <!-- PANTALLA D'INICI -->
+    <section id="inici" class="card">
+      <h2>Com et trobes avui?</h2>
+      <p>Respon unes quantes preguntes curtes i t'oferirem una orientació segons com et sentis, tant al cos com a l'ànim.</p>
+      <div class="avis">
+        Aquesta eina és <strong>orientativa</strong> i no substitueix un professional sanitari.
+        En una urgència, truca al <strong>112</strong>.
+      </div>
+      <label class="check">
+        <input type="checkbox" id="guardar" checked>
+        <span>Guardar el resultat en aquest dispositiu perquè pugui consultar-lo més tard. No es guarda cap dada personal i no s'envia enlloc.</span>
+      </label>
+      <button class="primari" id="btn-comencar">Començar</button>
+    </section>
+
+    <!-- PREGUNTA -->
+    <section id="pregunta" class="card" hidden>
+      <div class="progress" id="progres"></div>
+      <h2 id="enunciat"></h2>
+      <div class="opcions" id="opcions"></div>
+      <div class="fila">
+        <button class="secundari" id="btn-enrere">← Enrere</button>
+        <button class="secundari" id="btn-reiniciar">Tornar a l'inici</button>
+      </div>
+    </section>
+
+    <!-- RESULTAT -->
+    <section id="resultat" class="card final" hidden>
+      <span class="etiqueta" id="r-cat"></span>
+      <h2 id="r-titol"></h2>
+      <p id="r-text"></p>
+      <div class="enllacos" id="r-enllacos"></div>
+      <div class="avis">Aquesta orientació no és un diagnòstic. Si tens dubtes, consulta el teu metge.</div>
+      <button class="primari" id="btn-nou">Fer-ho una altra vegada</button>
+      <div class="fila">
+        <button class="secundari" id="btn-enrere-r">← Revisar l'última resposta</button>
+      </div>
+      <details class="resum">
+        <summary>Veure el meu recorregut</summary>
+        <ol id="r-cami"></ol>
+      </details>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="historial" class="card" hidden>
+      <h2>Historial en aquest dispositiu</h2>
+      <p class="muted">Només es guarda al teu navegador. Si esborres les dades del navegador, desapareix.</p>
+      <div id="h-contingut"></div>
+      <div class="fila">
+        <button class="secundari" id="btn-csv">Descarregar CSV</button>
+        <button class="secundari" id="btn-esborrar">Esborrar historial</button>
+        <button class="secundari" id="btn-tancar-h">Tancar</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Treball de Recerca de Batxillerat · Thos i Codina (Mataró)</p>
+    <button class="secundari" id="btn-historial">Veure historial</button>
+  </footer>
+
+  <script src="arbre.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const CLAU = "distonia_historial_v1";
+    const seccions = ["inici", "pregunta", "resultat", "historial"];
+
+    let actual = INICI;       // codi del node que es mostra
+    let cami = [];            // [{id, i}] respostes donades
+    let guardatTs = null;     // marca de temps del registre guardat en aquest recorregut
+    let seccioAnterior = "inici";
+
+    function mostra(nom) {
+      seccions.forEach((s) => { $(s).hidden = s !== nom; });
+      window.scrollTo({ top: 0 });
+    }
+
+    function comencar() {
+      actual = INICI; cami = []; guardatTs = null;
+      renderPregunta();
+    }
+
+    function renderPregunta() {
+      const n = NODES[actual];
+      $("progres").textContent = "Pregunta " + (cami.length + 1);
+      $("enunciat").textContent = n.t;
+      const cont = $("opcions");
+      cont.replaceChildren();
+      n.o.forEach(([text], i) => {
+        const b = document.createElement("button");
+        b.className = "opcio";
+        b.textContent = text;
+        b.addEventListener("click", () => triar(i));
+        cont.appendChild(b);
+      });
+      $("btn-enrere").style.visibility = cami.length ? "visible" : "hidden";
+      mostra("pregunta");
+    }
+
+    function triar(i) {
+      cami.push({ id: actual, i });
+      const seguent = NODES[actual].o[i][1];
+      if (FINALS[seguent]) {
+        renderResultat(seguent);
+      } else {
+        actual = seguent;
+        renderPregunta();
+      }
+    }
+
+    function enrere() {
+      if (!cami.length) return;
+      eliminaGuardat();
+      const ultim = cami.pop();
+      actual = ultim.id;
+      renderPregunta();
+    }
+
+    function renderResultat(codi) {
+      const f = FINALS[codi];
+      const sec = $("resultat");
+      sec.dataset.cat = f.cat;
+      $("r-cat").textContent = CATEGORIES[f.cat];
+      $("r-titol").textContent = f.titol;
+      $("r-text").textContent = f.text;
+
+      const cont = $("r-enllacos");
+      cont.replaceChildren();
+      (f.tels || []).forEach(([etiq, num]) => {
+        const a = document.createElement("a");
+        a.className = "enllac tel";
+        a.href = "tel:" + num;
+        a.textContent = etiq;
+        cont.appendChild(a);
+      });
+      (f.links || []).forEach(([etiq, url]) => {
+        const a = document.createElement("a");
+        a.className = "enllac";
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = etiq + " ↗";
+        cont.appendChild(a);
+      });
+
+      const ol = $("r-cami");
+      ol.replaceChildren();
+      cami.forEach(({ id, i }) => {
+        const li = document.createElement("li");
+        li.textContent = NODES[id].t + " → " + NODES[id].o[i][0];
+        ol.appendChild(li);
+      });
+
+      if ($("guardar").checked) guardaResultat(codi);
+      mostra("resultat");
+    }
+
+    // ---------- Historial (localStorage, anònim) ----------
+    function llegeixHistorial() {
+      try { return JSON.parse(localStorage.getItem(CLAU)) || []; } catch (e) { return []; }
+    }
+    function escriuHistorial(llista) {
+      try { localStorage.setItem(CLAU, JSON.stringify(llista)); } catch (e) { /* sense emmagatzematge */ }
+    }
+    function guardaResultat(codi) {
+      const ts = Date.now();
+      guardatTs = ts;
+      const llista = llegeixHistorial();
+      llista.push({
+        ts,
+        data: new Date(ts).toISOString(),
+        cami: cami.map((p) => p.id + ":" + p.i).join(">"),
+        final: codi,
+        categoria: FINALS[codi].cat,
+        preguntes: cami.length
+      });
+      escriuHistorial(llista);
+    }
+    function eliminaGuardat() {
+      if (guardatTs === null) return;
+      escriuHistorial(llegeixHistorial().filter((r) => r.ts !== guardatTs));
+      guardatTs = null;
+    }
+    function mostraHistorial() {
+      seccioAnterior = seccions.find((s) => !$(s).hidden) || "inici";
+      const llista = llegeixHistorial();
+      const cont = $("h-contingut");
+      cont.replaceChildren();
+      if (!llista.length) {
+        const p = document.createElement("p");
+        p.textContent = "Encara no hi ha cap resultat guardat.";
+        cont.appendChild(p);
+      } else {
+        const t = document.createElement("table");
+        t.innerHTML = "<thead><tr><th>Data</th><th>Final</th><th>Tipus</th></tr></thead>";
+        const tb = document.createElement("tbody");
+        llista.slice().reverse().forEach((r) => {
+          const tr = document.createElement("tr");
+          [new Date(r.ts).toLocaleString("ca-ES"), FINALS[r.final] ? FINALS[r.final].titol : r.final, CATEGORIES[r.categoria] || r.categoria]
+            .forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+          tb.appendChild(tr);
+        });
+        t.appendChild(tb);
+        cont.appendChild(t);
+      }
+      mostra("historial");
+    }
+    function descarregaCSV() {
+      const llista = llegeixHistorial();
+      const cap = ["data", "cami", "final", "categoria", "preguntes"];
+      const files = llista.map((r) => cap.map((c) => '"' + String(r[c]).replace(/"/g, '""') + '"').join(","));
+      const csv = [cap.join(",")].concat(files).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = "historial_distonia.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ---------- Esdeveniments ----------
+    $("btn-comencar").addEventListener("click", comencar);
+    $("btn-enrere").addEventListener("click", enrere);
+    $("btn-enrere-r").addEventListener("click", enrere);
+    $("btn-reiniciar").addEventListener("click", () => { cami = []; guardatTs = null; mostra("inici"); });
+    $("btn-nou").addEventListener("click", comencar);
+    $("btn-historial").addEventListener("click", mostraHistorial);
+    $("btn-tancar-h").addEventListener("click", () => mostra(seccioAnterior === "historial" ? "inici" : seccioAnterior));
+    $("btn-csv").addEventListener("click", descarregaCSV);
+    $("btn-esborrar").addEventListener("click", () => {
+      if (confirm("Vols esborrar tot l'historial d'aquest dispositiu?")) { escriuHistorial([]); mostraHistorial(); }
+    });
+  </script>
+</body>
+</html>
