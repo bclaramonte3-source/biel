@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registre diari · Viure amb distonia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="capcalera"></div>
+
+  <main id="contingut">
+    <h1>Registre diari</h1>
+    <p class="lead">Apunta cada dia com et trobes. Et portarà un minut i et servirà per veure l'evolució i per parlar-ne amb el teu metge. Es guarda només en aquest dispositiu.</p>
+
+    <section class="card" aria-labelledby="t-form">
+      <h2 id="t-form">Com ha anat el dia?</h2>
+
+      <div class="barra-veu no-print" id="barra-veu">
+        <button class="btn-sec" type="button" id="btn-omple-veu">Omplir les escales per veu</button>
+        <button class="btn-sec" type="button" id="btn-atura-veu" hidden>Aturar</button>
+      </div>
+      <p class="muted veu-estat" id="veu-estat" role="status" aria-live="polite"></p>
+      <p class="muted" id="nota-veu">Et faré les preguntes en veu alta i tu respons amb un número de l'1 al 5 (o amb la paraula, com «regular»). Per entendre la teva veu, el navegador envia l'àudio al seu servei de reconeixement (normalment de Google o Microsoft); aquesta web no el rep ni el guarda. Funciona millor a Chrome i Edge.</p>
+
+      <form id="form" novalidate>
+        <label class="camp">Data
+          <input type="date" id="data">
+        </label>
+
+        <div id="escales"></div>
+
+        <fieldset>
+          <legend>Quines zones han estat afectades avui?</legend>
+          <div class="chips" id="zones"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Altres coses</legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="trucs"><span>He fet servir trucs sensitius</span></label>
+            <label class="chip"><input type="checkbox" id="evitat"><span>He evitat alguna situació per la distonia</span></label>
+          </div>
+        </fieldset>
+
+        <label class="camp">Tractament o medicació d'avui (opcional)
+          <input type="text" id="tractament" maxlength="200" autocomplete="off">
+        </label>
+        <label class="camp">Alguna nota? (opcional)
+          <textarea id="nota" rows="3" maxlength="600"></textarea>
+        </label>
+        <div class="barra-veu no-print" id="barra-dicta">
+          <button class="btn-sec" type="button" id="btn-dicta">Dictar la nota</button>
+        </div>
+
+        <p id="error" class="error" role="alert" hidden></p>
+        <button class="btn bloc" type="submit">Guardar</button>
+      </form>
+      <div id="missatge" class="avis" role="status" hidden></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-evo">
+      <h2 id="t-evo">Evolució dels últims 30 dies</h2>
+      <div id="grafic" class="grafic"></div>
+      <div class="llegenda" id="llegenda" hidden>
+        <span><i></i>Ànim (1 molt baix, 5 molt bé)</span>
+        <span><i class="fis"></i>Símptomes físics (1 gairebé res, 5 molt intensos)</span>
+      </div>
+      <div class="stats" id="mitjanes"></div>
+      <p class="muted">Les mitjanes són dels últims 30 dies. Mira la taula de sota per veure cada dia.</p>
+    </section>
+
+    <section class="card" aria-labelledby="t-hist">
+      <h2 id="t-hist">Historial</h2>
+      <div id="taula" class="taula-scroll"></div>
+      <div class="fila no-print">
+        <button class="btn-sec" type="button" id="btn-csv">Descarregar CSV</button>
+        <button class="enllac-btn" type="button" id="btn-esborra-tot">Esborrar tot el registre</button>
+      </div>
+      <p class="muted">Les dades només són al teu navegador. Si canvies d'ordinador o esborres les dades del navegador, es perden: descarrega el CSV de tant en tant si vols guardar-les.</p>
+    </section>
+  </main>
+
+  <div id="peu"></div>
+  <script src="common.js"></script>
+  <script src="lib.js"></script>
+  <script src="veu.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    var form = $("form");
+    var entrades = llegeixRegistre();
+
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    // ---------- Construcció del formulari ----------
+    function construeix() {
+      ESCALES.forEach(function (s) {
+        var fs = el("fieldset", "escala");
+        fs.appendChild(el("legend", null, s.t));
+        var cx = el("div", "chips");
+        s.labels.forEach(function (lab, i) {
+          var l = el("label", "chip");
+          var inp = document.createElement("input");
+          inp.type = "radio"; inp.name = s.id; inp.value = String(i + 1);
+          l.appendChild(inp);
+          l.appendChild(el("span", null, (i + 1) + " · " + lab));
+          cx.appendChild(l);
+        });
+        fs.appendChild(cx);
+        $("escales").appendChild(fs);
+      });
+      ZONES.forEach(function (z) {
+        var l = el("label", "chip");
+        var inp = document.createElement("input");
+        inp.type = "checkbox"; inp.name = "zona"; inp.value = z;
+        l.appendChild(inp);
+        l.appendChild(el("span", null, z));
+        $("zones").appendChild(l);
+      });
+    }
+
+    function llegeixForm() {
+      var e = { data: $("data").value };
+      ESCALES.forEach(function (s) {
+        var c = form.querySelector('input[name="' + s.id + '"]:checked');
+        e[s.id] = c ? Number(c.value) : null;
+      });
+      e.zones = [].map.call(form.querySelectorAll('input[name="zona"]:checked'), function (i) { return i.value; });
+      e.trucs = $("trucs").checked;
+      e.evitat = $("evitat").checked;
+      e.tractament = $("tractament").value.trim();
+      e.nota = $("nota").value.trim();
+      return e;
+    }
+
+    function netejaForm(data) {
+      form.reset();
+      $("data").value = data;
+    }
+
+    function omple(e) {
+      netejaForm(e.data);
+      ESCALES.forEach(function (s) {
+        if (e[s.id] !== null && e[s.id] !== undefined) {
+          var r = form.querySelector('input[name="' + s.id + '"][value="' + e[s.id] + '"]');
+          if (r) r.checked = true;
+        }
+      });
+      (e.zones || []).forEach(function (z) {
+        var cs = form.querySelectorAll('input[name="zona"]');
+        for (var i = 0; i < cs.length; i++) if (cs[i].value === z) cs[i].checked = true;
+      });
+      $("trucs").checked = !!e.trucs;
+      $("evitat").checked = !!e.evitat;
+      $("tractament").value = e.tractament || "";
+      $("nota").value = e.nota || "";
+    }
+
+    function carrega(data) {
+      var trobada = entrades.filter(function (x) { return x.data === data; })[0];
+      if (trobada) omple(trobada); else netejaForm(data);
+      $("error").hidden = true;
+      $("missatge").hidden = true;
+    }
+
+    function mostraError(text) {
+      var p = $("error");
+      p.textContent = text;
+      p.hidden = false;
+    }
+
+    // ---------- Desar ----------
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var e = llegeixForm();
+      $("error").hidden = true;
+      if (!e.data) { mostraError("Tria una data."); return; }
+      if (e.data > avuiISO()) { mostraError("La data no pot ser futura."); return; }
+      if (e.anim === null || e.simptomes === null) {
+        mostraError("Respon almenys com ha estat l'ànim i com han estat els símptomes físics.");
+        return;
+      }
+      entrades = entrades.filter(function (x) { return x.data !== e.data; });
+      entrades.push(e);
+      entrades.sort(function (a, b) { return a.data < b.data ? -1 : 1; });
+      if (!escriuRegistre(entrades)) {
+        mostraError("No s'ha pogut guardar en aquest navegador (potser és una finestra privada).");
+        return;
+      }
+      mostraMissatge(e);
+      pinta();
+    });
+
+    function mostraMissatge(e) {
+      var m = $("missatge");
+      m.replaceChildren();
+      m.appendChild(el("strong", null, "Guardat. Gràcies per apuntar-ho. "));
+      if (e.anim <= 2) {
+        m.appendChild(document.createTextNode("Sembla que ha estat un dia difícil. Si vols, fes el qüestionari "));
+        var a = el("a", null, "Com et trobes avui?");
+        a.href = "orientacio.html";
+        m.appendChild(a);
+        m.appendChild(document.createTextNode(" o parla-ho amb algú de confiança."));
+        if (e.anim === 1) {
+          m.appendChild(document.createTextNode(" Si tens pensaments de fer-te mal o de no voler continuar, truca al 024 (gratuït, 24 hores) o al 112."));
+        }
+      }
+      m.hidden = false;
+    }
+
+    // ---------- Gràfic ----------
+    function svgEl(nom, atrs) {
+      var e = document.createElementNS("http://www.w3.org/2000/svg", nom);
+      for (var k in atrs) e.setAttribute(k, atrs[k]);
+      return e;
+    }
+
+    function pintaGrafic(llista) {
+      var cont = $("grafic");
+      cont.replaceChildren();
+      $("llegenda").hidden = llista.length < 2;
+      if (llista.length < 2) {
+        cont.appendChild(el("p", "muted", "Apunta com et trobes almenys dos dies diferents i aquí veuràs el gràfic."));
+        return;
+      }
+      var W = 640, H = 260, L = 40, R = 16, T = 14, B = 34;
+      var n = llista.length;
+      var y = function (v) { return T + (5 - v) / 4 * (H - T - B); };
+      var x = function (i) { return L + i * (W - L - R) / (n - 1); };
+
+      var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+        "aria-label": "Gràfic de l'ànim i dels símptomes físics dels últims dies, en una escala d'1 a 5" });
+
+      for (var v = 1; v <= 5; v++) {
+        svg.appendChild(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), "class": "reixa" }));
+        var t = svgEl("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" });
+        t.textContent = v;
+        svg.appendChild(t);
+      }
+      var posicions = [0, n - 1];
+      if (n >= 5) posicions.splice(1, 0, Math.floor((n - 1) / 2));
+      posicions.forEach(function (i) {
+        var t = svgEl("text", { x: x(i), y: H - 10, "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle") });
+        t.textContent = formatData(llista[i].data).slice(0, 5);
+        svg.appendChild(t);
+      });
+
+      function serie(camp, classeLinia, classePunt, quadrat) {
+        var punts = [];
+        llista.forEach(function (e, i) {
+          if (typeof e[camp] === "number") punts.push([x(i), y(e[camp])]);
+        });
+        if (punts.length > 1) {
+          svg.appendChild(svgEl("polyline", { "class": classeLinia,
+            points: punts.map(function (p) { return p[0] + "," + p[1]; }).join(" ") }));
+        }
+        punts.forEach(function (p) {
+          svg.appendChild(quadrat
+            ? svgEl("rect", { x: p[0] - 4, y: p[1] - 4, width: 8, height: 8, "class": classePunt })
+            : svgEl("circle", { cx: p[0], cy: p[1], r: 4.5, "class": classePunt }));
+        });
+      }
+      serie("simptomes", "s-fis", "p-fis", true);
+      serie("anim", "s-anim", "p-anim", false);
+      cont.appendChild(svg);
+    }
+
+    // ---------- Mitjanes ----------
+    function pintaMitjanes(r) {
+      var cont = $("mitjanes");
+      cont.replaceChildren();
+      function tile(valor, text) {
+        var d = el("div", "stat");
+        d.appendChild(el("b", null, valor));
+        d.appendChild(el("span", null, text));
+        cont.appendChild(d);
+      }
+      tile(String(r.n), "dies registrats");
+      ESCALES.forEach(function (s) {
+        var m = r.mitjanes[s.id];
+        tile(m === null ? "–" : m.toFixed(1).replace(".", ","), s.curt + " (mitjana, 1-5)");
+      });
+      tile(String(r.diesEvitat), "dies que has evitat alguna situació");
+    }
+
+    // ---------- Taula ----------
+    function pintaTaula() {
+      var cont = $("taula");
+      cont.replaceChildren();
+      if (!entrades.length) {
+        cont.appendChild(el("p", null, "Encara no hi ha cap dia apuntat."));
+        return;
+      }
+      var t = el("table");
+      var cap = el("tr");
+      ["Data"].concat(ESCALES.map(function (s) { return s.curt; })).concat([""]).forEach(function (h, i) {
+        cap.appendChild(el("th", i >= 3 && i <= 6 ? "col-extra" : null, h));
+      });
+      var th = el("thead"); th.appendChild(cap); t.appendChild(th);
+      var tb = el("tbody");
+      entrades.slice().reverse().slice(0, 90).forEach(function (e) {
+        var tr = el("tr");
+        tr.appendChild(el("td", null, formatData(e.data)));
+        ESCALES.forEach(function (s, i) {
+          tr.appendChild(el("td", i >= 2 && i <= 5 ? "col-extra" : null, e[s.id] === null || e[s.id] === undefined ? "–" : String(e[s.id])));
+        });
+        var acc = el("td");
+        var bE = el("button", "enllac-btn", "Editar");
+        bE.type = "button";
+        bE.addEventListener("click", function () {
+          $("data").value = e.data;
+          carrega(e.data);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        var bB = el("button", "enllac-btn", "Esborrar");
+        bB.type = "button";
+        bB.style.marginLeft = "10px";
+        bB.addEventListener("click", function () {
+          if (confirm("Vols esborrar el dia " + formatData(e.data) + "?")) {
+            entrades = entrades.filter(function (x) { return x.data !== e.data; });
+            escriuRegistre(entrades);
+            pinta();
+          }
+        });
+        acc.appendChild(bE); acc.appendChild(bB);
+        tr.appendChild(acc);
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb);
+      cont.appendChild(t);
+    }
+
+    function pinta() {
+      var r = resumPeriode(entrades, 30, avuiISO());
+      pintaGrafic(r.entrades);
+      pintaMitjanes(r);
+      pintaTaula();
+    }
+
+    // ---------- Veu: omplir les escales parlant i dictar la nota ----------
+    var ompleActiu = false;
+
+    function estatVeu(text) { $("veu-estat").textContent = text || ""; }
+
+    function aturaOmple() {
+      ompleActiu = false;
+      Veu.atura();
+      $("btn-atura-veu").hidden = true;
+      $("btn-omple-veu").disabled = false;
+    }
+
+    async function ompleEscalesPerVeu() {
+      if (!Veu.suportaParlar) { estatVeu(Veu.missatgeError({ error: "no-suportat" })); return; }
+      if (!Veu.consentiment()) { estatVeu("D'acord. Pots omplir-ho amb els botons."); return; }
+      ompleActiu = true;
+      $("btn-atura-veu").hidden = false;
+      $("btn-omple-veu").disabled = true;
+      for (var k = 0; k < ESCALES.length && ompleActiu; k++) {
+        var s = ESCALES[k];
+        var fet = false;
+        for (var intents = 0; intents < 2 && !fet && ompleActiu; intents++) {
+          estatVeu(s.curt + ": digues un número de l'1 al 5.");
+          await Veu.parla(s.t + " Digues un número de l'u al cinc.");
+          if (!ompleActiu) break;
+          var alts;
+          try {
+            alts = await Veu.escolta();
+          } catch (err) {
+            if (Veu.errorFatal(err)) { estatVeu(Veu.missatgeError(err)); ompleActiu = false; break; }
+            continue;     // no he sentit res: es torna a preguntar
+          }
+          if (!ompleActiu) break;
+          var m = Veu.trobaOpcio(alts, s.labels);
+          if (m && m.accio === "salta") { fet = true; break; }
+          if (m && m.accio === "enrere") { k = Math.max(-1, k - 2); fet = true; break; }
+          if (m && m.index !== undefined) {
+            var r = form.querySelector('input[name="' + s.id + '"][value="' + (m.index + 1) + '"]');
+            if (r) r.checked = true;
+            estatVeu(s.curt + ": " + (m.index + 1) + " · " + s.labels[m.index]);
+            await Veu.parla("He apuntat " + (m.index + 1) + ", " + s.labels[m.index] + ".");
+            fet = true;
+          } else {
+            await Veu.parla("No t'he entès.");
+          }
+        }
+      }
+      if (ompleActiu) {
+        estatVeu("Ja està. Revisa les respostes, tria les zones si cal i prem Guardar.");
+        await Veu.parla("Ja està. Revisa les respostes i prem Guardar.");
+      }
+      aturaOmple();
+    }
+
+    async function dictaNota() {
+      if (!Veu.suportaParlar) { estatVeu(Veu.missatgeError({ error: "no-suportat" })); return; }
+      if (!Veu.consentiment()) return;
+      estatVeu("Estic escoltant… digues la nota.");
+      try {
+        var alts = await Veu.escolta();
+        var t = (alts[0] || "").trim();
+        if (t) {
+          var nota = $("nota");
+          nota.value = (nota.value ? nota.value.replace(/\s+$/, "") + " " : "") + t.charAt(0).toUpperCase() + t.slice(1);
+          estatVeu("Nota afegida. Pots tornar a prémer «Dictar la nota» per afegir-ne més.");
+        } else {
+          estatVeu("No t'he entès.");
+        }
+      } catch (err) {
+        estatVeu(Veu.missatgeError(err));
+      }
+    }
+
+    if (!Veu.suportaParlar) {
+      $("btn-omple-veu").hidden = true;
+      $("barra-dicta").hidden = true;
+      $("nota-veu").hidden = true;
+      $("veu-estat").hidden = true;
+    }
+    $("btn-omple-veu").addEventListener("click", ompleEscalesPerVeu);
+    $("btn-atura-veu").addEventListener("click", function () { aturaOmple(); estatVeu("He aturat la veu."); });
+    $("btn-dicta").addEventListener("click", dictaNota);
+
+    // ---------- Esdeveniments ----------
+    $("data").addEventListener("change", function () { carrega($("data").value); });
+    $("btn-csv").addEventListener("click", function () {
+      if (!entrades.length) { alert("Encara no hi ha dades per descarregar."); return; }
+      baixaFitxer("registre_distonia.csv", "﻿" + registreACSV(entrades), "text/csv;charset=utf-8");
+    });
+    $("btn-esborra-tot").addEventListener("click", function () {
+      if (entrades.length && confirm("Vols esborrar TOT el registre d'aquest dispositiu? No es pot desfer.")) {
+        entrades = [];
+        escriuRegistre(entrades);
+        pinta();
+      }
+    });
+
+    construeix();
+    $("data").max = avuiISO();
+    carrega(avuiISO());
+    pinta();
+  </script>
+</body>
+</html>

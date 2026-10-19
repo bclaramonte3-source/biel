@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Família i entorn · Viure amb distonia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-llegir>
+  <div id="capcalera"></div>
+
+  <main id="contingut">
+    <h1>Família i entorn</h1>
+    <p class="lead">Per a qui viu, treballa o comparteix temps amb una persona amb distonia, i per a la mateixa persona si vol explicar-ho als altres.</p>
+
+    <section class="card">
+      <h2>Què convé saber</h2>
+      <ul>
+        <li><strong>És involuntari.</strong> La persona no ho fa expressament, no és nerviosisme ni manca de voluntat, i no és contagiós.</li>
+        <li><strong>No és psicològic.</strong> La distonia és un trastorn neurològic. L'estrès pot empitjorar-la, però no és la causa.</li>
+        <li><strong>Pot canviar d'un dia a l'altre,</strong> i fins i tot durant el mateix dia. Un dia bo no vol dir que ja estigui bé.</li>
+        <li><strong>Hi ha coses que no es veuen:</strong> el dolor, el cansament i l'esforç de mantenir-se tranquil/la davant dels altres.</li>
+        <li><strong>Les mirades fan mal.</strong> Moltes persones amb distonia se senten observades o jutjades, i això pot portar-les a evitar sortir.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Què pot ajudar</h2>
+      <ul>
+        <li><strong>Preguntar abans d'ajudar.</strong> «Vols que et doni un cop de mà?» és millor que fer-ho directament.</li>
+        <li><strong>Donar temps.</strong> Anar amb pressa augmenta l'estrès i pot empitjorar els símptomes.</li>
+        <li><strong>Mirar a la cara,</strong> no al moviment, i tractar la persona com sempre.</li>
+        <li><strong>Escoltar sense voler solucionar-ho.</strong> De vegades només cal que algú sàpiga com et sents.</li>
+        <li><strong>Respectar els dies dolents</strong> i ser flexible amb els plans.</li>
+        <li><strong>Oferir-se a acompanyar</strong> a les visites mèdiques si la persona ho vol.</li>
+        <li><strong>Informar-se.</strong> Pots començar per l'apartat <a href="informacio.html">Sobre la distonia</a>.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Frases que ajuden i frases que és millor evitar</h2>
+      <div class="taula-scroll">
+        <table>
+          <thead><tr><th>Millor evitar</th><th>Pot ajudar</th></tr></thead>
+          <tbody>
+            <tr><td>«Relaxa't, ja ho controlaràs.»</td><td>«Si necessites parar, parem.»</td></tr>
+            <tr><td>«Però si no es nota gaire.»</td><td>«Ets important per a mi, i no et jutjo.»</td></tr>
+            <tr><td>«Segur que són els nervis.»</td><td>«Ho entenc poc, m'ho vols explicar?»</td></tr>
+            <tr><td>«Fes un esforç.»</td><td>«Com et puc ajudar avui?»</td></tr>
+            <tr><td>Acabar les frases de la persona o fer-ho tot per ella.</td><td>Esperar, i preguntar si vol ajuda.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Aquests consells són generals. Cada persona és diferent, i el millor és preguntar-li què li va bé a ella.</p>
+    </section>
+
+    <section class="card" id="zona-targeta">
+      <h2>Targeta per explicar la distonia</h2>
+      <p>Si t'incomoden les mirades o les preguntes, pots tenir una targeta a punt. Edita el text com vulguis i imprimeix-la o desa-la com a PDF.</p>
+      <label class="camp no-print">Text de la targeta
+        <textarea id="text-targeta" rows="7"></textarea>
+      </label>
+      <div id="targeta" class="targeta-imprimible">
+        <h3 id="tg-titol">Tinc distonia</h3>
+        <p id="tg-text"></p>
+      </div>
+      <div class="fila esquerra no-print">
+        <button class="btn" type="button" id="imprimeix">Imprimir o desar com a PDF</button>
+        <button class="btn-sec" type="button" id="restaura">Tornar al text original</button>
+      </div>
+    </section>
+
+    <div class="avis no-print">
+      Si ets familiar o amic/a d'una persona amb distonia i tu també ho estàs passant malament, és normal. A <a href="recursos.html">Recursos</a> hi ha associacions que també donen suport a les famílies.
+    </div>
+  </main>
+
+  <div id="peu"></div>
+  <script src="common.js"></script>
+  <script src="veu.js"></script>
+  <script>
+    var TEXT_ORIGINAL =
+      "La distonia és un trastorn neurològic del moviment. Els meus músculs es contrauen sense que jo ho decideixi i això provoca moviments o postures estranyes.\n\n" +
+      "No és contagiós, no és nerviosisme i no ho faig expressament.\n\n" +
+      "Si pots, dona'm temps i no em miris fixament. No cal que m'ajudis si no t'ho demano.\n\n" +
+      "Gràcies per la comprensió.";
+    var area = document.getElementById("text-targeta");
+    function pinta() { document.getElementById("tg-text").textContent = area.value; }
+    area.value = TEXT_ORIGINAL;
+    pinta();
+    area.addEventListener("input", pinta);
+    document.getElementById("restaura").addEventListener("click", function () { area.value = TEXT_ORIGINAL; pinta(); });
+    document.getElementById("imprimeix").addEventListener("click", function () {
+      document.body.classList.add("print-targeta");
+      window.print();
+      document.body.classList.remove("print-targeta");
+    });
+  </script>
+</body>
+</html>

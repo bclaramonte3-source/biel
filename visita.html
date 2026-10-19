@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visita al metge · Viure amb distonia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="capcalera"></div>
+
+  <main id="contingut">
+    <h1>Visita al metge</h1>
+    <p class="lead">Prepara la consulta amb el teu neuròleg: un resum del teu registre i les preguntes que vols fer. Quan acabis, imprimeix-ho o desa-ho com a PDF.</p>
+
+    <section class="card no-print">
+      <label class="camp">Període que vols resumir
+        <select id="periode">
+          <option value="7">Últims 7 dies</option>
+          <option value="14">Últims 14 dies</option>
+          <option value="30" selected>Últims 30 dies</option>
+          <option value="90">Últims 90 dies</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Resum del registre</h2>
+      <div id="resum"></div>
+    </section>
+
+    <section class="card">
+      <h2>Per comentar a la visita</h2>
+      <label class="camp">Medicació i tractaments actuals
+        <textarea id="medicacio" rows="3" placeholder="Per exemple: medicació, data de l'última infiltració de toxina botulínica, fisioteràpia..."></textarea>
+      </label>
+      <label class="camp">Canvis des de l'última visita
+        <textarea id="canvis" rows="3" placeholder="Què ha canviat? Quan va començar? Què ho empitjora o ho millora?"></textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Preguntes per al metge</h2>
+      <p class="muted no-print">Marca les que vulguis portar apuntades i afegeix-ne de teves.</p>
+      <div id="preguntes"></div>
+      <label class="camp">Altres preguntes
+        <textarea id="altres" rows="3"></textarea>
+      </label>
+    </section>
+
+    <div class="fila esquerra no-print">
+      <button class="btn" type="button" id="imprimeix">Imprimir o desar com a PDF</button>
+      <a class="btn-sec" href="registre.html">Anar al registre diari</a>
+    </div>
+    <p class="muted no-print" style="margin-top:14px">El que escriguis aquí no es guarda: si tanques la pàgina, es perd. Imprimeix-ho o desa-ho abans com a PDF.</p>
+  </main>
+
+  <div id="peu"></div>
+  <script src="common.js"></script>
+  <script src="lib.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    var PREGUNTES = [
+      "Els símptomes han canviat des de l'última visita? Pot ser que hagin millorat o empitjorat?",
+      "Quant m'ha durat l'efecte de l'últim tractament (per exemple, la toxina botulínica, si en rebo)?",
+      "Hi ha opcions de tractament que encara no hem provat (medicació, fisioteràpia, altres)?",
+      "Els efectes secundaris que noto són normals?",
+      "Quins senyals indiquen que he de consultar abans de la propera visita?",
+      "Em convé suport psicològic o emocional?",
+      "Quines adaptacions puc demanar a la feina o als estudis?",
+      "Em recomanes alguna associació de pacients o grup de suport?"
+    ];
+
+    PREGUNTES.forEach(function (p, i) {
+      var l = el("label", "check");
+      var c = document.createElement("input");
+      c.type = "checkbox"; c.id = "q" + i;
+      l.appendChild(c);
+      l.appendChild(el("span", null, p));
+      $("preguntes").appendChild(l);
+    });
+
+    function pintaResum() {
+      var cont = $("resum");
+      cont.replaceChildren();
+      var dies = Number($("periode").value);
+      var r = resumPeriode(llegeixRegistre(), dies, avuiISO());
+
+      if (!r.n) {
+        var p = el("p", null, "No hi ha dies apuntats en aquest període. ");
+        var a = el("a", null, "Apunta com et trobes al registre diari");
+        a.href = "registre.html";
+        p.appendChild(a);
+        p.appendChild(document.createTextNode(" i aquí apareixerà el resum."));
+        cont.appendChild(p);
+        return;
+      }
+
+      cont.appendChild(el("p", null,
+        "Del " + formatData(r.des) + " al " + formatData(avuiISO()) + " has apuntat " + r.n + (r.n === 1 ? " dia." : " dies.")));
+
+      var stats = el("div", "stats");
+      ESCALES.forEach(function (s) {
+        var m = r.mitjanes[s.id];
+        var d = el("div", "stat");
+        d.appendChild(el("b", null, m === null ? "–" : m.toFixed(1).replace(".", ",")));
+        d.appendChild(el("span", null, s.curt + " (mitjana, 1-5)"));
+        stats.appendChild(d);
+      });
+      cont.appendChild(stats);
+
+      var ul = el("ul");
+      ul.appendChild(el("li", null, "Dies amb símptomes físics intensos (4 o 5): " + r.diesSimptomesAlts));
+      ul.appendChild(el("li", null, "Dies amb ànim baix (1 o 2): " + r.diesAnimBaix));
+      ul.appendChild(el("li", null, "Dies que he evitat alguna situació per la distonia: " + r.diesEvitat));
+      ul.appendChild(el("li", null, "Dies que he fet servir trucs sensitius: " + r.diesTrucs));
+      if (r.zones.length) {
+        ul.appendChild(el("li", null, "Zones més afectades: " +
+          r.zones.slice(0, 4).map(function (z) { return z[0] + " (" + z[1] + (z[1] === 1 ? " dia" : " dies") + ")"; }).join(", ")));
+      }
+      cont.appendChild(ul);
+
+      var tractaments = [];
+      r.entrades.forEach(function (e) {
+        if (e.tractament && tractaments.indexOf(e.tractament) === -1) tractaments.push(e.tractament);
+      });
+      if (tractaments.length) {
+        cont.appendChild(el("h3", null, "Tractament o medicació apuntats"));
+        var ut = el("ul");
+        tractaments.forEach(function (t) { ut.appendChild(el("li", null, t)); });
+        cont.appendChild(ut);
+      }
+
+      if (r.notes.length) {
+        cont.appendChild(el("h3", null, "Notes"));
+        var un = el("ul");
+        r.notes.forEach(function (n) { un.appendChild(el("li", null, formatData(n.data) + ": " + n.nota)); });
+        cont.appendChild(un);
+      }
+    }
+
+    $("periode").addEventListener("change", pintaResum);
+    $("imprimeix").addEventListener("click", function () { window.print(); });
+    pintaResum();
+  </script>
+</body>
+</html>

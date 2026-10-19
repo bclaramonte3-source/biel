@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Com et trobes avui? · Viure amb distonia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="capcalera"></div>
+
+  <main id="contingut">
+    <!-- PANTALLA D'INICI -->
+    <section id="inici" class="card">
+      <h1>Com et trobes avui?</h1>
+      <p>Respon unes quantes preguntes curtes i t'oferirem una orientació segons com et sentis, tant al cos com a l'ànim.</p>
+      <div class="avis">
+        Aquesta eina és <strong>orientativa</strong> i no substitueix un professional sanitari.
+        En una urgència, truca al <strong>112</strong>.
+      </div>
+
+      <fieldset class="veu" id="opcions-veu">
+        <legend>Veu (opcional)</legend>
+        <label class="check">
+          <input type="checkbox" id="auto-llegir">
+          <span>Llegir les preguntes en veu alta</span>
+        </label>
+        <label class="check" id="fila-auto-escolta">
+          <input type="checkbox" id="auto-escolta">
+          <span>Escoltar també la meva resposta (cal permetre el micròfon)</span>
+        </label>
+        <p class="muted" id="nota-veu">La lectura en veu alta es fa al teu dispositiu. Per entendre la teva resposta, el navegador envia l'àudio al seu servei de reconeixement de veu (normalment de Google o Microsoft); aquesta web no el rep ni el guarda. Funciona millor a Chrome i Edge. Pots fer servir sempre els botons.</p>
+      </fieldset>
+
+      <label class="check">
+        <input type="checkbox" id="guardar" checked>
+        <span>Guardar el resultat en aquest dispositiu perquè pugui consultar-lo més tard. No es guarda cap dada personal i no s'envia enlloc.</span>
+      </label>
+      <button class="btn bloc" id="btn-comencar" type="button">Començar</button>
+    </section>
+
+    <!-- PREGUNTA -->
+    <section id="pregunta" class="card" hidden>
+      <div class="progress" id="progres"></div>
+      <h2 id="enunciat"></h2>
+
+      <div class="barra-veu no-print" id="barra-veu">
+        <button class="btn-sec" id="btn-escolta" type="button">Escoltar la pregunta</button>
+        <button class="btn-sec" id="btn-parla" type="button">Respondre parlant</button>
+      </div>
+      <p class="muted veu-estat" id="veu-estat" role="status" aria-live="polite"></p>
+      <div class="fila esquerra" id="veu-confirma" hidden>
+        <button class="btn" id="btn-confirma" type="button">Confirmar</button>
+        <button class="btn-sec" id="btn-cancela" type="button">Tornar a provar</button>
+      </div>
+
+      <div class="opcions" id="opcions"></div>
+      <div class="fila">
+        <button class="enllac-btn" id="btn-enrere" type="button">← Enrere</button>
+        <button class="enllac-btn" id="btn-reiniciar" type="button">Tornar a l'inici</button>
+      </div>
+    </section>
+
+    <!-- RESULTAT -->
+    <section id="resultat" class="card final" hidden>
+      <span class="etiqueta" id="r-cat"></span>
+      <h2 id="r-titol"></h2>
+      <p id="r-text"></p>
+      <div class="enllacos" id="r-enllacos"></div>
+      <button class="btn-sec bloc" id="btn-escolta-r" type="button">Escoltar aquest resultat</button>
+      <div class="avis">Aquesta orientació no és un diagnòstic. Si tens dubtes, consulta el teu metge.</div>
+      <div class="enllacos">
+        <a class="enllac" href="registre.html">Apuntar com em trobo al registre diari</a>
+      </div>
+      <button class="btn bloc" id="btn-nou" type="button">Fer-ho una altra vegada</button>
+      <div class="fila">
+        <button class="enllac-btn" id="btn-enrere-r" type="button">← Revisar l'última resposta</button>
+      </div>
+      <details class="resum">
+        <summary>Veure el meu recorregut</summary>
+        <ol id="r-cami"></ol>
+      </details>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="historial" class="card" hidden>
+      <h2>Historial del qüestionari en aquest dispositiu</h2>
+      <p class="muted">Només es guarda al teu navegador. Si esborres les dades del navegador, desapareix.</p>
+      <div id="h-contingut" class="taula-scroll"></div>
+      <div class="fila">
+        <button class="enllac-btn" id="btn-csv" type="button">Descarregar CSV</button>
+        <button class="enllac-btn" id="btn-esborrar" type="button">Esborrar historial</button>
+        <button class="enllac-btn" id="btn-tancar-h" type="button">Tancar</button>
+      </div>
+    </section>
+
+    <p class="no-print" style="text-align:center"><button class="enllac-btn" id="btn-historial" type="button">Veure l'historial del qüestionari</button></p>
+  </main>
+
+  <div id="peu"></div>
+
+  <script src="common.js"></script>
+  <script src="veu.js"></script>
+  <script src="arbre.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const CLAU = "distonia_historial_v1";
+    const CLAU_LLEGIR = "distonia_veu_llegir";
+    const CLAU_ESCOLTA = "distonia_veu_escolta";
+    const seccions = ["inici", "pregunta", "resultat", "historial"];
+
+    let actual = INICI;       // codi del node que es mostra
+    let cami = [];            // [{id, i}] respostes donades
+    let guardatTs = null;     // marca de temps del registre guardat en aquest recorregut
+    let seccioAnterior = "inici";
+    let seq = 0;              // canvia a cada pregunta: serveix per ignorar respostes de veu antigues
+    let confirmaPendent = null;
+
+    function llegeixLS(k) { try { return localStorage.getItem(k) === "1"; } catch (e) { return false; } }
+    function escriuLS(k, v) { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) { /* res */ } }
+
+    function mostra(nom) {
+      seccions.forEach((s) => { $(s).hidden = s !== nom; });
+      window.scrollTo({ top: 0 });
+    }
+
+    function estat(text) { $("veu-estat").textContent = text || ""; }
+
+    function comencar() {
+      actual = INICI; cami = []; guardatTs = null;
+      renderPregunta();
+    }
+
+    // ---------- Veu ----------
+    function textPregunta() {
+      const n = NODES[actual];
+      return n.t + " " + n.o.map(([t], i) => "Opció " + (i + 1) + ": " + t + ".").join(" ");
+    }
+
+    function llegeixPregunta() {
+      return Veu.llegeixLlista([textPregunta()]);
+    }
+
+    function marcaOpcio(i) {
+      document.querySelectorAll("#opcions .opcio").forEach((b, k) => b.classList.toggle("triada", k === i));
+    }
+
+    // Mostra «He entès X» i espera la confirmació (per veu o amb els botons)
+    function confirma(text) {
+      return new Promise((resol) => {
+        let fet = false;
+        const fi = (v) => {
+          if (fet) return;
+          fet = true;
+          confirmaPendent = null;
+          $("veu-confirma").hidden = true;
+          Veu.paraEscolta();
+          resol(v);
+        };
+        confirmaPendent = fi;
+        $("btn-confirma").onclick = () => fi(true);
+        $("btn-cancela").onclick = () => fi(false);
+        $("veu-confirma").hidden = false;
+        estat("He entès: «" + text + "». Digues «sí» per confirmar o «no» per tornar-ho a provar.");
+        Veu.parla("He entès: " + text + ". Ho confirmes? Digues sí o no.").then(() => {
+          if (fet) return;
+          Veu.escolta().then((alts) => {
+            const r = Veu.esSiNo(alts);
+            if (r !== null) fi(r);
+          }).catch(() => { /* es poden fer servir els botons */ });
+        });
+      });
+    }
+
+    async function respostaPerVeu() {
+      const tok = seq;
+      if (!Veu.suportaParlar) { estat(Veu.missatgeError({ error: "no-suportat" })); return; }
+      if (!Veu.consentiment()) { estat("D'acord. Pots respondre amb els botons."); return; }
+      for (let intents = 0; intents < 3; intents++) {
+        if (tok !== seq) return;
+        estat("Estic escoltant… digues el número o el text de l'opció.");
+        let alts;
+        try {
+          alts = await Veu.escolta();
+        } catch (err) {
+          if (tok !== seq) return;
+          estat(Veu.missatgeError(err) + (Veu.errorFatal(err) ? "" : " Prem «Respondre parlant» per tornar a provar."));
+          if (Veu.errorFatal(err) || err.error === "no-speech") return;
+          continue;
+        }
+        if (tok !== seq) return;
+        const opcions = NODES[actual].o.map((x) => x[0]);
+        const m = Veu.trobaOpcio(alts, opcions);
+
+        if (m && m.accio === "enrere") { if (cami.length) { enrere(); } else { estat("Ja ets a la primera pregunta."); } return; }
+        if (m && m.accio === "repeteix") { estat("Torno a llegir la pregunta."); await llegeixPregunta(); intents--; continue; }
+        if (m && m.index !== undefined) {
+          marcaOpcio(m.index);
+          const ok = await confirma(opcions[m.index]);
+          if (tok !== seq) return;
+          if (ok) { triar(m.index); return; }
+          marcaOpcio(-1);
+          estat("D'acord. Torna-ho a dir.");
+          await Veu.parla("D'acord. Torna-ho a dir.");
+          continue;
+        }
+        const msg = m && m.ambigu
+          ? "Això encaixa amb més d'una opció. Digues el número de l'opció."
+          : "No t'he entès. Digues el número de l'opció.";
+        estat(msg);
+        await Veu.parla(msg);
+      }
+      if (tok === seq) estat("No t'he entès. Prem «Respondre parlant» per tornar a provar o tria una opció amb el dit.");
+    }
+
+    async function veuAutomatica() {
+      const tok = seq;
+      await llegeixPregunta();
+      if (tok !== seq) return;
+      if ($("auto-escolta").checked && Veu.suportaParlar) respostaPerVeu();
+    }
+
+    // ---------- Pantalles ----------
+    function renderPregunta() {
+      seq++;
+      if (confirmaPendent) confirmaPendent(false);
+      $("veu-confirma").hidden = true;
+      Veu.atura();
+      estat("");
+
+      const n = NODES[actual];
+      $("progres").textContent = "Pregunta " + (cami.length + 1);
+      $("enunciat").textContent = n.t;
+      const cont = $("opcions");
+      cont.replaceChildren();
+      n.o.forEach(([text], i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "opcio";
+        const num = document.createElement("span");
+        num.className = "num";
+        num.textContent = (i + 1) + ".";
+        b.appendChild(num);
+        b.appendChild(document.createTextNode(text));
+        b.addEventListener("click", () => triar(i));
+        cont.appendChild(b);
+      });
+      $("btn-enrere").style.visibility = cami.length ? "visible" : "hidden";
+      mostra("pregunta");
+      if ($("auto-llegir").checked && Veu.suportaLlegir) veuAutomatica();
+    }
+
+    function triar(i) {
+      cami.push({ id: actual, i });
+      const seguent = NODES[actual].o[i][1];
+      if (FINALS[seguent]) {
+        renderResultat(seguent);
+      } else {
+        actual = seguent;
+        renderPregunta();
+      }
+    }
+
+    function enrere() {
+      if (!cami.length) return;
+      eliminaGuardat();
+      const ultim = cami.pop();
+      actual = ultim.id;
+      renderPregunta();
+    }
+
+    let textResultat = "";
+
+    function renderResultat(codi) {
+      seq++;
+      if (confirmaPendent) confirmaPendent(false);
+      Veu.atura();
+      const f = FINALS[codi];
+      const sec = $("resultat");
+      sec.dataset.cat = f.cat;
+      $("r-cat").textContent = CATEGORIES[f.cat];
+      $("r-titol").textContent = f.titol;
+      $("r-text").textContent = f.text;
+      textResultat = f.titol + ". " + f.text;
+
+      const cont = $("r-enllacos");
+      cont.replaceChildren();
+      (f.tels || []).forEach(([etiq, num]) => {
+        const a = document.createElement("a");
+        a.className = "enllac tel";
+        a.href = "tel:" + num;
+        a.textContent = etiq;
+        cont.appendChild(a);
+      });
+      (f.links || []).forEach(([etiq, url]) => {
+        const a = document.createElement("a");
+        a.className = "enllac";
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = etiq + " ↗";
+        cont.appendChild(a);
+      });
+
+      const ol = $("r-cami");
+      ol.replaceChildren();
+      cami.forEach(({ id, i }) => {
+        const li = document.createElement("li");
+        li.textContent = NODES[id].t + " → " + NODES[id].o[i][0];
+        ol.appendChild(li);
+      });
+
+      if ($("guardar").checked) guardaResultat(codi);
+      mostra("resultat");
+      if ($("auto-llegir").checked && Veu.suportaLlegir) Veu.llegeixLlista([textResultat]);
+    }
+
+    // ---------- Historial (localStorage, anònim) ----------
+    function llegeixHistorial() {
+      try { return JSON.parse(localStorage.getItem(CLAU)) || []; } catch (e) { return []; }
+    }
+    function escriuHistorial(llista) {
+      try { localStorage.setItem(CLAU, JSON.stringify(llista)); } catch (e) { /* sense emmagatzematge */ }
+    }
+    function guardaResultat(codi) {
+      const ts = Date.now();
+      guardatTs = ts;
+      const llista = llegeixHistorial();
+      llista.push({
+        ts,
+        data: new Date(ts).toISOString(),
+        cami: cami.map((p) => p.id + ":" + p.i).join(">"),
+        final: codi,
+        categoria: FINALS[codi].cat,
+        preguntes: cami.length
+      });
+      escriuHistorial(llista);
+    }
+    function eliminaGuardat() {
+      if (guardatTs === null) return;
+      escriuHistorial(llegeixHistorial().filter((r) => r.ts !== guardatTs));
+      guardatTs = null;
+    }
+    function mostraHistorial() {
+      seccioAnterior = seccions.find((s) => !$(s).hidden) || "inici";
+      const llista = llegeixHistorial();
+      const cont = $("h-contingut");
+      cont.replaceChildren();
+      if (!llista.length) {
+        const p = document.createElement("p");
+        p.textContent = "Encara no hi ha cap resultat guardat.";
+        cont.appendChild(p);
+      } else {
+        const t = document.createElement("table");
+        const th = document.createElement("thead");
+        const trh = document.createElement("tr");
+        ["Data", "Final", "Tipus"].forEach((h) => { const c = document.createElement("th"); c.textContent = h; trh.appendChild(c); });
+        th.appendChild(trh); t.appendChild(th);
+        const tb = document.createElement("tbody");
+        llista.slice().reverse().forEach((r) => {
+          const tr = document.createElement("tr");
+          [new Date(r.ts).toLocaleString("ca-ES"), FINALS[r.final] ? FINALS[r.final].titol : r.final, CATEGORIES[r.categoria] || r.categoria]
+            .forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+          tb.appendChild(tr);
+        });
+        t.appendChild(tb);
+        cont.appendChild(t);
+      }
+      mostra("historial");
+    }
+    function descarregaCSV() {
+      const llista = llegeixHistorial();
+      const cap = ["data", "cami", "final", "categoria", "preguntes"];
+      const files = llista.map((r) => cap.map((c) => '"' + String(r[c]).replace(/"/g, '""') + '"').join(","));
+      const csv = [cap.join(",")].concat(files).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+      a.download = "historial_questionari_distonia.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ---------- Esdeveniments ----------
+    $("btn-comencar").addEventListener("click", comencar);
+    $("btn-enrere").addEventListener("click", enrere);
+    $("btn-enrere-r").addEventListener("click", enrere);
+    $("btn-reiniciar").addEventListener("click", () => { seq++; Veu.atura(); cami = []; guardatTs = null; mostra("inici"); });
+    $("btn-nou").addEventListener("click", comencar);
+    $("btn-historial").addEventListener("click", mostraHistorial);
+    $("btn-tancar-h").addEventListener("click", () => mostra(seccioAnterior === "historial" ? "inici" : seccioAnterior));
+    $("btn-csv").addEventListener("click", descarregaCSV);
+    $("btn-esborrar").addEventListener("click", () => {
+      if (confirm("Vols esborrar tot l'historial d'aquest dispositiu?")) { escriuHistorial([]); mostraHistorial(); }
+    });
+
+    $("btn-escolta").addEventListener("click", () => { llegeixPregunta(); });
+    $("btn-parla").addEventListener("click", () => { respostaPerVeu(); });
+    $("btn-escolta-r").addEventListener("click", () => { Veu.llegeixLlista([textResultat]); });
+
+    // Opcions de veu: es recorden en aquest dispositiu
+    if (!Veu.suportaLlegir) {
+      $("opcions-veu").hidden = true;
+      $("btn-escolta").hidden = true;
+      $("btn-escolta-r").hidden = true;
+    }
+    if (!Veu.suportaParlar) {
+      $("fila-auto-escolta").hidden = true;
+      $("btn-parla").hidden = true;
+    }
+    if (!Veu.suportaLlegir && !Veu.suportaParlar) $("barra-veu").hidden = true;
+
+    $("auto-llegir").checked = llegeixLS(CLAU_LLEGIR) && Veu.suportaLlegir;
+    $("auto-escolta").checked = llegeixLS(CLAU_ESCOLTA) && Veu.suportaParlar && Veu.suportaLlegir;
+    $("auto-llegir").addEventListener("change", () => {
+      escriuLS(CLAU_LLEGIR, $("auto-llegir").checked);
+      if (!$("auto-llegir").checked) { $("auto-escolta").checked = false; escriuLS(CLAU_ESCOLTA, false); }
+    });
+    $("auto-escolta").addEventListener("change", () => {
+      if ($("auto-escolta").checked) {
+        if (!Veu.consentiment()) { $("auto-escolta").checked = false; return; }
+        $("auto-llegir").checked = true;     // escoltar la resposta implica llegir la pregunta
+        escriuLS(CLAU_LLEGIR, true);
+      }
+      escriuLS(CLAU_ESCOLTA, $("auto-escolta").checked);
+    });
+  </script>
+</body>
+</html>
