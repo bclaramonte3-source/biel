@@ -76,6 +76,27 @@ main { width: 100%; max-width: 820px; margin: 0 auto; padding: 24px 16px 32px; f
 .barra-veu { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 14px; }
 .barra-veu .btn-sec { padding: 9px 16px; min-height: 44px; }
 .veu-estat { min-height: 1.5em; margin: 6px 0 10px; }
+
+/* ---------- Lectura per apartats ---------- */
+.apartat { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.apartat > details.acordio { flex: 1; min-width: 0; margin-bottom: 0; }
+.btn-apartat {
+  flex: none; font: inherit; font-weight: 600; cursor: pointer; min-height: 52px; min-width: 96px;
+  padding: 0 14px; border-radius: 14px; color: var(--accent); background: var(--card); border: 2px solid var(--accent);
+}
+/* En pantalles petites, amb l'apartat obert el botó passa a dalt i ocupa tot l'ample (el text guanya espai) */
+@media (max-width: 560px) {
+  .apartat:has(> details[open]) { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .apartat:has(> details[open]) > details.acordio { flex: none; }
+  .apartat:has(> details[open]) > .btn-apartat { width: 100%; }
+}
+.btn-apartat:hover { background: var(--accent-soft); }
+.btn-apartat[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.atura-flotant {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 520px; margin: 0 auto; z-index: 20;
+  min-height: 58px; font-size: 1.05rem; box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+}
+body.llegint { padding-bottom: 90px; }
 .opcio .num { font-weight: 700; margin-right: 8px; color: var(--accent); }
 .opcio.triada { border-color: var(--accent); background: var(--accent-soft); outline: 3px solid var(--accent); }
 fieldset.veu { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 16px 0; }

@@ -104,13 +104,16 @@ var Veu = (function () {
   var fil = 0;       // s'incrementa per cancel·lar lectures en curs
   var rec = null;    // reconeixement en curs
 
+  // Tria una veu catalana; si n'hi ha de «natural» o «online» (les millors), les prefereix
   function triaVeuCatalana() {
     if (!synth || !synth.getVoices) return null;
     var vs = synth.getVoices() || [];
-    for (var i = 0; i < vs.length; i++) {
-      if (vs[i].lang && vs[i].lang.toLowerCase().indexOf("ca") === 0) return vs[i];
+    var cat = vs.filter(function (v) { return v.lang && v.lang.toLowerCase().replace("_", "-").indexOf("ca") === 0; });
+    if (!cat.length) return null;
+    for (var i = 0; i < cat.length; i++) {
+      if (/natural|online/i.test(cat[i].name || "")) return cat[i];
     }
-    return null;
+    return cat[0];
   }
 
   // Llegeix un text i resol quan acaba (o quan es cancel·la)
@@ -135,22 +138,65 @@ var Veu = (function () {
     if (rec) { try { rec.abort(); } catch (e) { /* res */ } rec = null; }
   }
 
+  var oients = [];
+  var botoFlotant = null;
+
+  // Avisa que la lectura ha començat (true) o ha acabat o s'ha aturat (false).
+  // A les pàgines amb <body data-llegir> mostra un botó gran fix per aturar-la.
+  function canvia(llegint) {
+    if (document.body && document.body.hasAttribute("data-llegir")) {
+      if (!botoFlotant) {
+        botoFlotant = document.createElement("button");
+        botoFlotant.type = "button";
+        botoFlotant.className = "btn atura-flotant no-print";
+        botoFlotant.textContent = "Aturar la lectura";
+        botoFlotant.hidden = true;
+        botoFlotant.addEventListener("click", function () { atura(); });
+        document.body.appendChild(botoFlotant);
+      }
+      botoFlotant.hidden = !llegint;
+      document.body.classList.toggle("llegint", llegint);
+    }
+    oients.forEach(function (fn) { try { fn(llegint); } catch (e) { /* res */ } });
+  }
+
+  function alCanviar(fn) { oients.push(fn); }
+
   // Atura la lectura i el micròfon
   function atura() {
     fil++;
     if (synth) { try { synth.cancel(); } catch (e) { /* res */ } }
     paraEscolta();
+    canvia(false);
+  }
+
+  // Talla els textos llargs en frases: alguns navegadors tallen les lectures llargues
+  function trossos(text) {
+    if (text.length <= 220) return [text];
+    var frases = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+    var out = [], cur = "";
+    frases.forEach(function (f) {
+      if (cur && (cur + f).length > 220) { out.push(cur.trim()); cur = ""; }
+      cur += f;
+    });
+    if (cur.trim()) out.push(cur.trim());
+    return out;
   }
 
   // Llegeix una llista de textos un darrere l'altre
   function llegeixLlista(textos) {
     var id = ++fil;
     if (synth) { try { synth.cancel(); } catch (e) { /* res */ } }
+    var peces = [];
+    textos.forEach(function (t) { peces = peces.concat(trossos(t)); });
     return new Promise(function (resol) {
       setTimeout(function () {
+        if (id !== fil) { resol(); return; }
+        canvia(true);
         (function seguent(i) {
-          if (id !== fil || i >= textos.length) { resol(); return; }
-          parla(textos[i]).then(function () { seguent(i + 1); });
+          if (id !== fil) { resol(); return; }
+          if (i >= peces.length) { canvia(false); resol(); return; }
+          parla(peces[i]).then(function () { seguent(i + 1); });
         })(0);
       }, 60);
     });
@@ -255,9 +301,16 @@ var Veu = (function () {
     main.insertBefore(d, main.firstChild);
   }
 
+  // Tecla Escape per aturar la lectura, i parar-la en sortir de la pàgina
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && document.body.hasAttribute("data-llegir")) atura();
+  });
+  window.addEventListener("pagehide", atura);
+
   iniciaBarra();
 
   return {
+    alCanviar: alCanviar,
     suportaLlegir: !!synth,
     suportaParlar: !!SR,
     parla: parla,

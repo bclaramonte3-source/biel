@@ -185,6 +185,64 @@
     }
     document.getElementById("obre").addEventListener("click", function () { totsAcordions(true); });
     document.getElementById("tanca").addEventListener("click", function () { totsAcordions(false); });
+
+    // ---------- Escoltar cada apartat ----------
+    // Cada apartat té el seu botó «Escoltar», que llegeix el títol i tot el contingut
+    // (també si l'apartat està tancat). Les taules es llegeixen fila a fila.
+    (function () {
+      if (!Veu || !Veu.suportaLlegir) return;
+
+      function neteja(t) { return t.replace(/[↗←→·]/g, " ").replace(/\s+/g, " ").trim(); }
+      function ambPunt(t) { return /[.!?:]$/.test(t) ? t : t + "."; }
+
+      function textosApartat(d) {
+        var out = [ambPunt(neteja(d.querySelector("summary").textContent))];
+        d.querySelectorAll(".cos h3, .cos p, .cos li, .cos tbody tr").forEach(function (el) {
+          if (el.tagName === "TR") {
+            var cel = [].map.call(el.children, function (c) { return ambPunt(neteja(c.textContent)); });
+            out.push(cel.join(" "));
+          } else if (!el.closest("tr")) {
+            var t = neteja(el.textContent);
+            if (t) out.push(t);
+          }
+        });
+        return out;
+      }
+
+      var botons = [];
+      function reinicia() {
+        botons.forEach(function (b) {
+          b.textContent = "Escoltar";
+          b.setAttribute("aria-pressed", "false");
+          b.setAttribute("aria-label", "Escoltar l'apartat: " + b.dataset.titol);
+        });
+      }
+      Veu.alCanviar(function (llegint) { if (!llegint) reinicia(); });
+
+      document.querySelectorAll("#acordions details.acordio").forEach(function (d) {
+        var titol = neteja(d.querySelector("summary").textContent);
+        var w = document.createElement("div");
+        w.className = "apartat";
+        d.parentNode.insertBefore(w, d);
+        w.appendChild(d);
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn-apartat no-print";
+        b.dataset.titol = titol;
+        w.appendChild(b);
+        botons.push(b);
+        b.addEventListener("click", function () {
+          if (b.getAttribute("aria-pressed") === "true") { Veu.atura(); return; }
+          reinicia();
+          d.open = true;                       // s'obre per poder seguir el text amb els ulls
+          b.textContent = "Aturar";
+          b.setAttribute("aria-pressed", "true");
+          b.setAttribute("aria-label", "Aturar la lectura de l'apartat: " + titol);
+          Veu.llegeixLlista(textosApartat(d));
+        });
+      });
+      reinicia();
+    })();
   </script>
 </body>
 </html>

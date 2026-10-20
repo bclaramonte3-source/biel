@@ -26,7 +26,7 @@ Fitxers de suport:
 
 ## Veu
 
-- **Llegir en veu alta:** botó «Llegir la pàgina en veu alta» a Inici, Sobre la distonia, Família i entorn i Recursos; «Escoltar la pregunta» al qüestionari. Ho fa el propi dispositiu i no s'envia res enlloc. Si el dispositiu no té veu en català, el navegador n'usarà una altra i la pronunciació pot ser pitjor.
+- **Llegir en veu alta:** botó «Llegir la pàgina en veu alta» a Inici, Sobre la distonia, Família i entorn i Recursos; «Escoltar la pregunta» al qüestionari. A **Sobre la distonia**, cada apartat té a més el seu botó **«Escoltar»**, que llegeix el títol i tot el contingut encara que l'apartat estigui tancat. Mentre s'està llegint apareix a baix un botó gran **«Aturar la lectura»** (també atura la tecla Escape). Ho fa el propi dispositiu i no s'envia res enlloc. Si el dispositiu no té veu en català, el navegador n'usarà una altra i la pronunciació pot ser pitjor.
 - **Respondre parlant:** al qüestionari («Respondre parlant», o el mode automàtic de la pantalla d'inici) i al registre diari («Omplir les escales per veu», «Dictar la nota»). Abans d'entendre una opció, la web la repeteix i demana confirmació.
 - **Privadesa:** per entendre la veu, el navegador envia l'àudio al seu servei de reconeixement (normalment Google o Microsoft). Aquesta web no el rep ni el guarda, i avisa abans del primer ús. Funciona sobretot a Chrome i Edge; a Firefox només es pot llegir en veu alta.
 - **Limitacions:** si la persona té distonia a la veu, la mandíbula o la llengua, el reconeixement pot fallar. Per això la veu és sempre opcional i tot es pot fer amb els botons.
